@@ -1,61 +1,81 @@
+from PyQt6.QtWidgets import (QWidget, QProgressBar,
+                             QPushButton, QApplication)
+from PyQt6.QtCore import QBasicTimer
 import sys
-import time
-from PyQt6.QtCore import QThread, pyqtSignal
-from PyQt6.QtWidgets import QWidget, QPushButton, QProgressBar, QVBoxLayout, QApplication, QHBoxLayout
+
+"""
+A progress bar is a widget that is used when we process lengthy tasks. 
+It is animated so that the user knows that the task is progressing. 
+The QProgressBar widget provides a horizontal or a vertical progress bar in PyQt6 toolkit. 
+The programmer can set the minimum and maximum value for the progress bar. 
+The default values are 0 and 99.
+"""
 
 
-class Thread(QThread):
-    _signal = pyqtSignal(int)
-
-    def __init__(self):
-        super(Thread, self).__init__()
-
-    def run(self):
-        for i in range(100):
-            time.sleep(0.1)
-            self._signal.emit(i)
+"""
+In our example we have a horizontal progress bar and a push button. 
+The push button starts and stops the progress bar.
+"""
 
 
 class Example(QWidget):
+
     def __init__(self):
-        super(Example, self).__init__()
+        super().__init__()
 
-        self.thread = None
-        self.setWindowTitle('QProgressBar')
+        self.step = None
+        self.timer = None
+        self.btn = None
+        self.pbar = None
 
-        self.btn = QPushButton('Click me')
-        self.btn.clicked.connect(self.btnFunc)
+        self.initUI()
 
+    def initUI(self):
+
+        # This is a QProgressBar constructor.
         self.pbar = QProgressBar(self)
-        self.pbar.setValue(0)
+        self.pbar.setGeometry(40, 40, 200, 25)
 
-        self.vbox = QVBoxLayout()
-        self.vbox.addStretch(1)
-        self.vbox.addWidget(self.pbar)
-        self.vbox.addWidget(self.btn)
+        self.btn = QPushButton('Start', self)
+        self.btn.move(40, 80)
+        self.btn.clicked.connect(self.doAction)
 
-        self.hbox = QHBoxLayout()
-        self.hbox.addStretch(1)
-        self.hbox.addLayout(self.vbox)
+        # To activate the progress bar, we use a timer object.
+        self.timer = QBasicTimer()
+        self.step = 0
 
-        self.setLayout(self.hbox)
+        self.setGeometry(300, 300, 280, 170)
+        self.setWindowTitle('QProgressBar')
         self.show()
 
-    def btnFunc(self):
-        self.thread = Thread()
-        self.thread._signal.connect(self.signal_accept)
-        self.thread.start()
-        self.btn.setEnabled(False)
+    # Each QObject and its descendants have a timerEvent event handler.
+    # In order to react to timer events, we reimplement the event handler.
+    def timerEvent(self, e):
+        if self.step >= 100:
+            self.timer.stop()
+            self.btn.setText('Finished')
+            return
 
-    def signal_accept(self, msg):
-        self.pbar.setValue(int(msg))
-        if self.pbar.value() == 99:
-            self.pbar.setValue(0)
-            self.btn.setEnabled(True)
+        self.step = self.step + 1
+        self.pbar.setValue(self.step)
+
+    # Inside the doAction method, we start and stop the timer.
+    def doAction(self):
+        if self.timer.isActive():
+            self.timer.stop()
+            self.btn.setText('Start')
+        else:
+            # To launch a timer event, we call its start method.
+            # This method has two parameters: the timeout and the object which receive the events.
+            self.timer.start(100, self)
+            self.btn.setText('Stop')
 
 
-if __name__ == "__main__":
+def main():
     app = QApplication(sys.argv)
     ex = Example()
-    ex.show()
     sys.exit(app.exec())
+
+
+if __name__ == '__main__':
+    main()
